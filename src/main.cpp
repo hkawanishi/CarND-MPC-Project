@@ -77,7 +77,7 @@ int main() {
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     string sdata = string(data).substr(0, length);
-    cout << sdata << endl;
+    //cout << sdata << endl;
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
       string s = hasData(sdata);
       if (s != "") {
@@ -94,12 +94,24 @@ int main() {
           double steer_value = j[1]["steering_angle"];
           double throttle_value = j[1]["throttle"]; 
 
+          double Lf = 2.67;
+
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
+          // deal with the latency.  Latency is 100ms (0.1 s)
+          //cout << "before latency: \n";
+          //cout << "px = " << px << ", py= " << py << ", psi = " << psi << ", v = " << v << "\n";
+          double latency = 0.1;
+          psi = psi + steer_value/Lf*latency;
+          v = v + throttle_value*latency;
+          px = px + v*cos(psi)*latency;
+          py = py + v*sin(psi)*latency;
+          //cout << "after latency: \n";
+          //cout << "px = " << px << ", py= " << py << ", psi = " << psi << ", v = " << v << "\n";
           
           for (int i = 0; i < ptsx.size(); i++){
             // shift car reference angle.  Shifting to this reference.
@@ -128,7 +140,7 @@ int main() {
           
 
           Eigen::VectorXd state(6);
-          // px, py, psi are zero at first because of the coordinate shift.
+          // px, py, psi are zero because of the coordinate shift.
           state << 0, 0, 0, v, cte, epsi;
 
           auto vars = mpc.Solve(state, coeffs);
@@ -136,7 +148,8 @@ int main() {
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          steer_value = vars[0]/(deg2rad(25));
+          // add a minus sign for steer_value.  In the simulator, "left" is negative.
+          steer_value = -vars[0]/(deg2rad(25));
           throttle_value = vars[1];
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
@@ -180,7 +193,7 @@ int main() {
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.

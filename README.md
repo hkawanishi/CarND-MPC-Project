@@ -1,7 +1,76 @@
 # CarND-Controls-MPC
 Self-Driving Car Engineer Nanodegree Program
 
+This project is a part of Udacity's Self-Driving Car Engineer
+Nanodegree Program.  The project was cloned from Udacity
+github repository.
+
+main.cpp and MPC.cpp were edited to implement the Model Predictive Control.
+
+## Implementation
+
+### The Model
+This Model Predictive Control (MPC) is implemented. This model simulates the actuator inputs, predicts the results from a trajectory, and selects a trajectory with a minimum cost at each time step. Then, use those actuator inputs, and use that new states and calculate a new trajectory. 
+
+Six state variables are used in this project:
+
+	x => the vehicle position at x-axis
+	y => the vehicle position at y-axis 
+ 	psi => the vehicle yaw orientaiton
+	v => the vehicle speed
+	cte => cross track error
+	epsi => the orientation (yaw) errors.
+
+Two actuators (control inputs) used are:
+	
+	delta => steering angle
+	a => throttle (acceleration/braking)
+
+The state variables for a next time step can be calculated by:
+
+	x[t+1] = x[t] + v[t] * cos(psi[t])*dt
+	y[t+1] = y[t] + v[t] * sin(psi[t])*dt
+	psi[t+1] = psi[t] + v[t]/Lf * delta[t]*dt
+	v[t+1] = v[t] + a[t] * dt
+	cte[t+1] = cte[t] + v[t] * sin(epsi[t])*dt
+	epsi[t+1] = epsi[t] + v[t]/Lf * delta[t]* dt
+
+Note that Lf is the distance from the front of the vehicle to the vehicle c.g.   
+In this project, it is a constant value and set to 2.67.
+
+dt is the timestep (see the next section).  
+
+
+### Timestep Length and Elapsed Duration (N and dt)
+
+The simulation runs pretty good with 30 MPH.  The vehicle runs at 50 MPH, but it goes closer to the curb when there is a large curve in the road.
+
+With 30 MPH, the settings of N = 15 and dt = 0.05 seconds are used.
+These values are determined by the trail and error.  They are picked by observing the cte values and ran the simulation to see if the vehicle runs successfully.
+
+### Polynomial Fitting and MPC Preprocessing.
+
+The waypoints (in main.cpp, they are defined as ptsx and ptsy) are obtained from the simulator in the global coordinate system.
+
+Since the state is expressed in a vehicle coordinate system, the conversion was performed. [in main.cpp, lines 116-123.]
+
+After transforming those points in the vehicle coordinate system, use the predefined Polyfit function to obtain the third order polynomial coefficents.  
+Once the coeffients are otbained, create a reference line by specifiying a number of points (15) and the spacing (1.5) as x values.
+
+### Model Predictive Control with Latency
+
+In MPC, one of the contributiong factors of the latency is the actuator dynamics such as there is a time delay between when the actuator information (steering angle, throttle) are sent and when these information is actually received. In this project, it is assumed that there is a 100ms delay.
+To avoid this problem, predict the state uses this latency delay (100ms), and then feed them into the solver. [in main.cpp, lines 108-112.]. 
+
+
+## Simulation
+
+The simulation runs with 30 MPH.  The vehicle can run at 50 MPH but it goes too close to the curb.
+To successfully run the simulation, a lot of tunings were required.  And unfortunately, with the limited time available to complete this project, could not find the tunining parameters which work for any vehicle speed.  To be able to run with 30 MPH, added multipliers (weights) to a part of the cost function affecting steering and throttle [in MPC.cpp, diff_delta_mul = 10000 for steering, and diff_a_mul = 1000 for throttle.  Picking these numbers are also by trial and error with different speed.]
+
+
 ---
+Below, the original comment when the project was cloned.
 
 ## Dependencies
 
